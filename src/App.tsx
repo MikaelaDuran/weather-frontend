@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
 import weatherIcon from './assets/weather_liten.png';
+/*import WeatherChart from './components/WeatherChart.tsx';*/
+
+
 
 interface Weather {
   id: number;
@@ -12,14 +15,26 @@ interface Weather {
 function App() {
   const [weather, setWeather] = useState<Weather | null>(null);
   
+
+  //TODO Hämta senaste väderdata från servern varje timme?
 useEffect(() => {
-  fetch('http://localhost:8080/weather/all')
-    .then((res) => res.json())
-    .then((data) => {
-      if (data.length > 0) setWeather(data[0]);
-    })
-    .catch((err) => console.error('Kunde inte hämta väder:', err));
+  const fetchWeather = () => {
+    fetch('http://localhost:8080/weather/all')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.length > 0) setWeather(data[0]);
+      })
+      .catch((err) => console.error('Kunde inte hämta väder:', err));
+  };
+
+  fetchWeather(); // Hämta direkt vid start
+
+  const interval = setInterval(fetchWeather, 3600000); // Varje timme
+
+  return () => clearInterval(interval); // Städar upp när komponenten tas bort
 }, []);
+
+
 function getLocalDate(): string {
   const date = new Date();
   const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
@@ -58,7 +73,9 @@ function getLocalDate(): string {
           </div>
         </div>
       </div>
+      {/*<WeatherChart />*/}
     </div>
+
   );
 }
 
