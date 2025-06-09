@@ -104,8 +104,11 @@ function App() {
   return (
     <>
       <Navbar />
+      
       <div className="min-h-screen bg-gradient-to-tr from-white via-white to-sky-100 text-black flex items-center justify-center px-4 py-6">
+        
         <div className="w-full max-w-4xl bg-white/60 rounded-2xl shadow-2xl p-6 mt-12">
+        
 
           {/* Enkel Today-rubrik och datum */}
           <h2 className="text-3xl font-playfair text-slate-700 text-center mb-2">

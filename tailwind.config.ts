@@ -1,5 +1,4 @@
-// tailwind.config.js
-module.exports = {
+export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -7,7 +6,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        playfair: ['"Playfair Display"', 'serif'],
+        baskervville: ['"Baskervville SC"', 'serif'],
       },
     },
   },
