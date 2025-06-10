@@ -93,26 +93,33 @@ function App() {
   };
 
   const chartOptions: ChartOptions<'line'> = {
-    responsive: true,
-    plugins: {
-      legend: { position: 'bottom' }
-    },
-    scales: {
-      x: {
-        title: { display: false },
-        ticks: {
-          autoSkip: false,
-          maxRotation: 0,
-          minRotation: 0
-        }
+  responsive: true,
+  plugins: {
+    legend: { position: 'bottom' }
+  },
+  scales: {
+    x: {
+      title: { display: false },
+      ticks: {
+        autoSkip: false,
+        maxRotation: 0,
+        minRotation: 0
       },
-      y: {
-        title: { display: false },
-        min: selected === 'temp' ? -40 : undefined,
-        max: selected === 'temp' ? 50 : undefined
+      grid: {
+        display: false // Tar bort vertikala linjer
+      }
+    },
+    y: {
+      title: { display: false },
+      min: selected === 'temp' ? -40 : undefined,
+      max: selected === 'temp' ? 50 : undefined,
+      grid: {
+        display: false // Tar bort horisontella linjer
       }
     }
-  };
+  }
+};
+
 
   const card = (title: string, value: string) => (
     <div className="bg-white shadow rounded-xl p-4 text-center">
