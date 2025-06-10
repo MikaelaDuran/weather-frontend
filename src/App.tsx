@@ -34,15 +34,18 @@ function App() {
         .then((res) => res.json())
         .then((data: Weather[]) => {
           if (data.length > 0) {
-            setWeather(data[0]);
+            const sortedData = [...data].sort((a, b) =>
+              new Date(a.timestamp ?? '').getTime() - new Date(b.timestamp ?? '').getTime()
+            );
 
             const today = new Date().toISOString().split('T')[0];
-            const filtered = data.filter(entry => {
+            const filtered = sortedData.filter(entry => {
               const entryDate = new Date(entry.timestamp ?? '').toISOString().split('T')[0];
               return entryDate === today;
             });
 
             setDailyData(filtered);
+            setWeather(filtered[filtered.length - 1] ?? null);
           }
         })
         .catch((err) => console.error('Failed to fetch weather data:', err));
@@ -53,73 +56,75 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  const staticLabels = Array.from({ length: 13 }, (_, i) => {
-    const hour = i * 2;
-    return `${hour.toString().padStart(2, '0')}:00`;
-  });
+  // 🧠 Gruppera till unika HH:MM (senaste per minut)
+  const cleanedDataMap = new Map<string, Weather>();
 
-  const dataByLabel = staticLabels.map((label) => {
-    const [targetHour] = label.split(':').map(Number);
-    const matching = dailyData.filter(d => {
-      const ts = new Date(d.timestamp ?? '');
-      return ts.getHours() === targetHour;
-    });
-    const latest = matching[matching.length - 1];
-    return latest ?? null;
-  });
+  for (const entry of dailyData) {
+    const date = new Date(entry.timestamp ?? '');
+    const rounded = date.toTimeString().substring(0, 5); // "HH:MM"
+    cleanedDataMap.set(rounded, entry); // senaste skrivs över
+  }
+
+  const cleanedData = Array.from(cleanedDataMap.entries()).map(([time, data]) => ({
+    ...data,
+    roundedTime: time
+  }));
+
+  const labels = cleanedData.map(d => d.roundedTime);
 
   const chartData = {
-    labels: staticLabels,
+    labels,
     datasets: [
       selected === 'temp' && {
         label: 'Temperature (°C)',
-        data: dataByLabel.map(d => d?.temp ?? null),
+        data: cleanedData.map(d => d.temp),
         borderColor: '#4b5563',
-        tension: 0.4
+        tension: 0.4,
+        spanGaps: true
       },
       selected === 'humidity' && {
         label: 'Humidity (%)',
-        data: dataByLabel.map(d => d?.humidity ?? null),
+        data: cleanedData.map(d => d.humidity),
         borderColor: '#4b5563',
-        tension: 0.4
+        tension: 0.4,
+        spanGaps: true
       },
       selected === 'pressure' && {
         label: 'Pressure (hPa)',
-        data: dataByLabel.map(d => d?.pressure ?? null),
+        data: cleanedData.map(d => d.pressure),
         borderColor: '#4b5563',
-        tension: 0.4
+        tension: 0.4,
+        spanGaps: true
       }
     ].filter(Boolean) as any
   };
 
   const chartOptions: ChartOptions<'line'> = {
-  responsive: true,
-  plugins: {
-    legend: { position: 'bottom' }
-  },
-  scales: {
-    x: {
-      title: { display: false },
-      ticks: {
-        autoSkip: false,
-        maxRotation: 0,
-        minRotation: 0
-      },
-      grid: {
-        display: false // Tar bort vertikala linjer
-      }
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom' }
     },
-    y: {
-      title: { display: false },
-      min: selected === 'temp' ? -40 : undefined,
-      max: selected === 'temp' ? 50 : undefined,
-      grid: {
-        display: false // Tar bort horisontella linjer
+    scales: {
+      x: {
+        ticks: {
+          autoSkip: false,
+          callback: (value, index) => {
+            const label = labels[index];
+            return label?.endsWith(':00') ? label : '';
+          },
+          maxRotation: 0,
+          minRotation: 0
+        },
+        grid: { display: false }
+      },
+      y: {
+        title: { display: false },
+        min: selected === 'temp' ? -40 : undefined,
+        max: selected === 'temp' ? 50 : undefined,
+        grid: { display: false }
       }
     }
-  }
-};
-
+  };
 
   const card = (title: string, value: string) => (
     <div className="bg-white shadow rounded-xl p-4 text-center">
