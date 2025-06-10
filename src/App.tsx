@@ -23,9 +23,16 @@ interface Weather {
   timestamp?: string;
 }
 
+interface CleanedWeather {
+  roundedTime: string;
+  temp: number | null;
+  humidity: number | null;
+  pressure: number | null;
+}
+
 function App() {
   const [weather, setWeather] = useState<Weather | null>(null);
-  const [dailyData, setDailyData] = useState<Weather[]>([]);
+  const [dailyDataRaw, setDailyDataRaw] = useState<Weather[]>([]);
   const [selected, setSelected] = useState<'temp' | 'humidity' | 'pressure'>('temp');
 
   useEffect(() => {
@@ -44,7 +51,7 @@ function App() {
               return entryDate === today;
             });
 
-            setDailyData(filtered);
+            setDailyDataRaw(filtered);
             setWeather(filtered[filtered.length - 1] ?? null);
           }
         })
@@ -52,46 +59,68 @@ function App() {
     };
 
     fetchWeather();
-    const interval = setInterval(fetchWeather, 60000); // varje minut
+    const interval = setInterval(fetchWeather, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // 🧠 Gruppera till unika HH:MM (senaste per minut)
+  // 🧠 Rensa dubletter – behåll senaste per minut (HH:MM)
   const cleanedDataMap = new Map<string, Weather>();
-
-  for (const entry of dailyData) {
+  for (const entry of dailyDataRaw) {
     const date = new Date(entry.timestamp ?? '');
     const rounded = date.toTimeString().substring(0, 5); // "HH:MM"
-    cleanedDataMap.set(rounded, entry); // senaste skrivs över
+    cleanedDataMap.set(rounded, entry); // senaste vinner
   }
 
-  const cleanedData = Array.from(cleanedDataMap.entries()).map(([time, data]) => ({
-    ...data,
-    roundedTime: time
-  }));
+  // 🕓 Skapa alla minuter från 00:00 till nu
+  const generateMinuteTimestamps = (): string[] => {
+    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  const labels = cleanedData.map(d => d.roundedTime);
+    const times: string[] = [];
+    while (today <= now) {
+      const time = today.toTimeString().substring(0, 5);
+      times.push(time);
+      today.setMinutes(today.getMinutes() + 1);
+    }
+    return times;
+  };
+
+  const allMinutes = generateMinuteTimestamps();
+
+  // 🧱 Bygg komplett lista – med null där det saknas data
+  const filledData: CleanedWeather[] = allMinutes.map(minute => {
+    const found = cleanedDataMap.get(minute);
+    return {
+      roundedTime: minute,
+      temp: found?.temp ?? null,
+      humidity: found?.humidity ?? null,
+      pressure: found?.pressure ?? null
+    };
+  });
+
+  const labels = filledData.map(d => d.roundedTime);
 
   const chartData = {
     labels,
     datasets: [
       selected === 'temp' && {
         label: 'Temperature (°C)',
-        data: cleanedData.map(d => d.temp),
+        data: filledData.map(d => d.temp),
         borderColor: '#4b5563',
         tension: 0.4,
         spanGaps: true
       },
       selected === 'humidity' && {
         label: 'Humidity (%)',
-        data: cleanedData.map(d => d.humidity),
+        data: filledData.map(d => d.humidity),
         borderColor: '#4b5563',
         tension: 0.4,
         spanGaps: true
       },
       selected === 'pressure' && {
         label: 'Pressure (hPa)',
-        data: cleanedData.map(d => d.pressure),
+        data: filledData.map(d => d.pressure),
         borderColor: '#4b5563',
         tension: 0.4,
         spanGaps: true
