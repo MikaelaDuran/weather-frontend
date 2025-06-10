@@ -1,19 +1,7 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 import Navbar from './components/Navbar';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  LineElement,
-  PointElement,
-  CategoryScale,
-  LinearScale,
-  Legend,
-  Tooltip
-} from 'chart.js';
-import type { ChartOptions } from 'chart.js';
-
-ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Legend, Tooltip);
+import WeatherChart from './components/WeatherChart';
 
 interface Weather {
   id: number;
@@ -21,13 +9,6 @@ interface Weather {
   pressure: number;
   humidity: number;
   timestamp?: string;
-}
-
-interface CleanedWeather {
-  roundedTime: string;
-  temp: number | null;
-  humidity: number | null;
-  pressure: number | null;
 }
 
 function App() {
@@ -63,98 +44,6 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // 🧠 Rensa dubletter – behåll senaste per minut (HH:MM)
-  const cleanedDataMap = new Map<string, Weather>();
-  for (const entry of dailyDataRaw) {
-    const date = new Date(entry.timestamp ?? '');
-    const rounded = date.toTimeString().substring(0, 5); // "HH:MM"
-    cleanedDataMap.set(rounded, entry); // senaste vinner
-  }
-
-  // 🕓 Skapa alla minuter från 00:00 till nu
-  const generateMinuteTimestamps = (): string[] => {
-    const now = new Date();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const times: string[] = [];
-    while (today <= now) {
-      const time = today.toTimeString().substring(0, 5);
-      times.push(time);
-      today.setMinutes(today.getMinutes() + 1);
-    }
-    return times;
-  };
-
-  const allMinutes = generateMinuteTimestamps();
-
-  // 🧱 Bygg komplett lista – med null där det saknas data
-  const filledData: CleanedWeather[] = allMinutes.map(minute => {
-    const found = cleanedDataMap.get(minute);
-    return {
-      roundedTime: minute,
-      temp: found?.temp ?? null,
-      humidity: found?.humidity ?? null,
-      pressure: found?.pressure ?? null
-    };
-  });
-
-  const labels = filledData.map(d => d.roundedTime);
-
-  const chartData = {
-    labels,
-    datasets: [
-      selected === 'temp' && {
-        label: 'Temperature (°C)',
-        data: filledData.map(d => d.temp),
-        borderColor: '#4b5563',
-        tension: 0.4,
-        spanGaps: true
-      },
-      selected === 'humidity' && {
-        label: 'Humidity (%)',
-        data: filledData.map(d => d.humidity),
-        borderColor: '#4b5563',
-        tension: 0.4,
-        spanGaps: true
-      },
-      selected === 'pressure' && {
-        label: 'Pressure (hPa)',
-        data: filledData.map(d => d.pressure),
-        borderColor: '#4b5563',
-        tension: 0.4,
-        spanGaps: true
-      }
-    ].filter(Boolean) as any
-  };
-
-  const chartOptions: ChartOptions<'line'> = {
-    responsive: true,
-    plugins: {
-      legend: { position: 'bottom' }
-    },
-    scales: {
-      x: {
-        ticks: {
-          autoSkip: false,
-          callback: (value, index) => {
-            const label = labels[index];
-            return label?.endsWith(':00') ? label : '';
-          },
-          maxRotation: 0,
-          minRotation: 0
-        },
-        grid: { display: false }
-      },
-      y: {
-        title: { display: false },
-        min: selected === 'temp' ? -40 : undefined,
-        max: selected === 'temp' ? 50 : undefined,
-        grid: { display: false }
-      }
-    }
-  };
-
   const card = (title: string, value: string) => (
     <div className="bg-white shadow rounded-xl p-4 text-center">
       <p className="text-gray-600 text-sm">{title}</p>
@@ -186,7 +75,7 @@ function App() {
               <button onClick={() => setSelected('humidity')} className={`px-4 py-1 rounded-full border ${selected === 'humidity' ? 'bg-gray-200 text-gray-400 border-gray-200' : 'border-gray-300 text-gray-400'}`}>Humidity</button>
               <button onClick={() => setSelected('pressure')} className={`px-4 py-1 rounded-full border ${selected === 'pressure' ? 'bg-gray-200 text-gray-400 border-gray-200' : 'border-gray-300 text-gray-400'}`}>Pressure</button>
             </div>
-            <Line data={chartData} options={chartOptions} />
+            <WeatherChart dailyDataRaw={dailyDataRaw} selected={selected} />
           </div>
         </div>
       </div>

@@ -1,59 +1,159 @@
-/*import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  Legend
-} from 'recharts';
+import { Line } from 'react-chartjs-2';
+import type { ChartOptions } from 'chart.js';
+import {
+  Chart as ChartJS,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Legend,
+  Tooltip
+} from 'chart.js';
 
-const data = [
-  { time: '00:00', temperature: 19, humidity: 15, pressure: 10 },
-  { time: '06:00', temperature: 20, humidity: 14, pressure: 10 },
-  { time: '12:00', temperature: 25, humidity: 12, pressure: 11 },
-  { time: '15:00', temperature: 23, humidity: 13, pressure: 13 },
-  { time: '18:00', temperature: 21, humidity: 14, pressure: 14 },
-  { time: '21:00', temperature: 18, humidity: 15, pressure: 15 },
-];
+import { useMemo } from 'react';
 
-export default function WeatherChart() {
-  return (
-    <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-5xl mx-auto">
-      <h2 className="text-3xl font-bold mb-6 text-center text-[#d4af37]">
-        Changes Over Time
-      </h2>
-      <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="time" stroke="#d4af37" />
-          <YAxis stroke="#d4af37" />
-          <Tooltip />
-          <Legend />
-          <Line
-            type="monotone"
-            dataKey="temperature"
-            stroke="#ef4444"
-            strokeWidth={3}
-            name="Temperature"
-          />
-          <Line
-            type="monotone"
-            dataKey="humidity"
-            stroke="#3b82f6"
-            strokeWidth={3}
-            name="Humidity"
-          />
-          <Line
-            type="monotone"
-            dataKey="pressure"
-            stroke="#a3a3a3"
-            strokeWidth={3}
-            name="Pressure"
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}*/
+ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Legend, Tooltip);
+
+interface Weather {
+  id: number;
+  temp: number;
+  pressure: number;
+  humidity: number;
+  timestamp?: string;
+}
+
+interface CleanedWeather {
+  roundedTime: string;
+  temp: number | null;
+  humidity: number | null;
+  pressure: number | null;
+}
+
+interface Props {
+  dailyDataRaw: Weather[];
+  selected: 'temp' | 'humidity' | 'pressure';
+}
+
+const WeatherChart = ({ dailyDataRaw, selected }: Props) => {
+  const { filledData, labels } = useMemo(() => {
+    const cleanedDataMap = new Map<string, Weather>();
+    for (const entry of dailyDataRaw) {
+      const date = new Date(entry.timestamp ?? '');
+      const rounded = date.toTimeString().substring(0, 5);
+      cleanedDataMap.set(rounded, entry); // senaste vinner
+    }
+
+    const sortedEntries: CleanedWeather[] = Array.from(cleanedDataMap.entries()).map(([minute, entry]) => ({
+      roundedTime: minute,
+      temp: entry.temp,
+      humidity: entry.humidity,
+      pressure: entry.pressure
+    }));
+
+    sortedEntries.sort((a, b) => a.roundedTime.localeCompare(b.roundedTime));
+
+    if (sortedEntries.length > 0) {
+      const firstTime = new Date(`1970-01-01T${sortedEntries[0].roundedTime}:00`);
+      const lastTime = new Date(`1970-01-01T${sortedEntries[sortedEntries.length - 1].roundedTime}:00`);
+
+      // ⬆️ Runda UPP till närmaste halvtimme efter första tidpunkten
+      const startTime = new Date(firstTime);
+      const startMin = startTime.getMinutes();
+      if (startMin > 30) {
+        startTime.setHours(startTime.getHours() + 1, 0, 0, 0);
+      } else if (startMin > 0) {
+        startTime.setMinutes(30, 0, 0);
+      }
+
+      // ⬆️ Runda UPP till närmaste halvtimme efter sista tidpunkten
+      const endTime = new Date(lastTime);
+      const endMin = endTime.getMinutes();
+      if (endMin > 30) {
+        endTime.setHours(endTime.getHours() + 1, 0, 0, 0);
+      } else if (endMin > 0) {
+        endTime.setMinutes(30, 0, 0);
+      }
+
+      const allTimes: string[] = [];
+      const current = new Date(startTime);
+      while (current <= endTime) {
+        const hh = current.getHours().toString().padStart(2, '0');
+        const mm = current.getMinutes().toString().padStart(2, '0');
+        allTimes.push(`${hh}:${mm}`);
+        current.setMinutes(current.getMinutes() + 1);
+      }
+
+      const dataMap = new Map(sortedEntries.map(d => [d.roundedTime, d]));
+      const filledData: CleanedWeather[] = allTimes.map(time => {
+        return dataMap.get(time) || {
+          roundedTime: time,
+          temp: null,
+          humidity: null,
+          pressure: null
+        };
+      });
+
+      return { filledData, labels: allTimes };
+    }
+
+    return { filledData: [], labels: [] };
+  }, [dailyDataRaw]);
+
+  const chartData = {
+    labels,
+    datasets: [
+      selected === 'temp' && {
+        label: 'Temperature (°C)',
+        data: filledData.map(d => d.temp),
+        borderColor: '#4b5563',
+        tension: 0.4,
+        spanGaps: true
+      },
+      selected === 'humidity' && {
+        label: 'Humidity (%)',
+        data: filledData.map(d => d.humidity),
+        borderColor: '#4b5563',
+        tension: 0.4,
+        spanGaps: true
+      },
+      selected === 'pressure' && {
+        label: 'Pressure (hPa)',
+        data: filledData.map(d => d.pressure),
+        borderColor: '#4b5563',
+        tension: 0.4,
+        spanGaps: true
+      }
+    ].filter(Boolean) as any
+  };
+
+  const chartOptions: ChartOptions<'line'> = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom' }
+    },
+    scales: {
+      x: {
+        ticks: {
+          autoSkip: false,
+          callback: (value, index) => {
+            const label = labels[index];
+            return label?.endsWith(':00') || label?.endsWith(':30') ? label : '';
+          },
+          maxRotation: 0,
+          minRotation: 0
+        },
+        grid: { display: false }
+      },
+      y: {
+        title: { display: false },
+        min: selected === 'temp' ? -40 : undefined,
+        max: selected === 'temp' ? 50 : undefined,
+        grid: { display: false }
+      }
+    }
+  };
+
+  return <Line data={chartData} options={chartOptions} />;
+};
+
+export default WeatherChart;
