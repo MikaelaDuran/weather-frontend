@@ -1,7 +1,9 @@
+
 import { useEffect, useState } from 'react';
 import './App.css';
 import Navbar from './components/Navbar';
 import WeatherChart from './components/WeatherChart';
+import { FaRegCalendarAlt } from 'react-icons/fa';
 
 interface Weather {
   id: number;
@@ -15,34 +17,41 @@ function App() {
   const [weather, setWeather] = useState<Weather | null>(null);
   const [dailyDataRaw, setDailyDataRaw] = useState<Weather[]>([]);
   const [selected, setSelected] = useState<'temp' | 'humidity' | 'pressure'>('temp');
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const fetchWeather = () => {
+    fetch('http://localhost:8080/weather/all')
+      .then((res) => res.json())
+      .then((data: Weather[]) => {
+        if (data.length > 0) {
+          const sortedData = [...data].sort((a, b) =>
+            new Date(a.timestamp ?? '').getTime() - new Date(b.timestamp ?? '').getTime()
+          );
+
+          const filtered = sortedData.filter(entry => {
+            const entryDate = new Date(entry.timestamp ?? '').toISOString().split('T')[0];
+            return entryDate === selectedDate;
+          });
+
+          setDailyDataRaw(filtered);
+          setWeather(filtered[filtered.length - 1] ?? null);
+        }
+      })
+      .catch((err) => console.error('Failed to fetch weather data:', err));
+  };
 
   useEffect(() => {
-    const fetchWeather = () => {
-      fetch('http://localhost:8080/weather/all')
-        .then((res) => res.json())
-        .then((data: Weather[]) => {
-          if (data.length > 0) {
-            const sortedData = [...data].sort((a, b) =>
-              new Date(a.timestamp ?? '').getTime() - new Date(b.timestamp ?? '').getTime()
-            );
-
-            const today = new Date().toISOString().split('T')[0];
-            const filtered = sortedData.filter(entry => {
-              const entryDate = new Date(entry.timestamp ?? '').toISOString().split('T')[0];
-              return entryDate === today;
-            });
-
-            setDailyDataRaw(filtered);
-            setWeather(filtered[filtered.length - 1] ?? null);
-          }
-        })
-        .catch((err) => console.error('Failed to fetch weather data:', err));
-    };
-
     fetchWeather();
     const interval = setInterval(fetchWeather, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedDate]);
+
+  const changeDay = (offset: number) => {
+    const current = new Date(selectedDate);
+    current.setDate(current.getDate() + offset);
+    setSelectedDate(current.toISOString().split('T')[0]);
+  };
 
   const card = (title: string, value: string) => (
     <div className="bg-white shadow rounded-xl p-4 text-center">
@@ -51,17 +60,37 @@ function App() {
     </div>
   );
 
+  const weekday = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' });
+  const monthDay = new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
   return (
     <>
       <Navbar />
       <div className="min-h-screen bg-gradient-to-tr from-white via-white to-sky-100 text-black flex items-center justify-center px-4 py-6">
-        <div className="w-full max-w-4xl bg-white/60 rounded-2xl shadow-2xl p-6 mt-12">
-          <h2 className="text-3xl font-playfair text-slate-700 text-center mb-2">Today</h2>
-          <p className="text-center text-slate-600 mb-6">
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-            })}
-          </p>
+        <div className="w-full max-w-4xl bg-white/60 rounded-2xl shadow-2xl p-6 mt-12 relative">
+
+          <button onClick={() => changeDay(-1)} className="absolute left-32 top-15 text-3xl text-black">{'<'}</button>
+          <button onClick={() => changeDay(1)} className="absolute right-32 top-15  text-2xl text-black">{'>'}</button>
+
+          <h2 className="text-3xl font-playfair text-slate-700 text-center mb-1">{weekday}</h2>
+
+          <div className="flex flex-col items-center mb-6">
+            <p className="text-center text-slate-600 text-lg">{monthDay}</p>
+            <button onClick={() => setShowDatePicker(!showDatePicker)} className="mt-2">
+              <FaRegCalendarAlt className="text-black text-lg" />
+            </button>
+            {showDatePicker && (
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => {
+                  setSelectedDate(e.target.value);
+                  setShowDatePicker(false);
+                }}
+                className="mt-2 border rounded px-2 py-1 text-sm"
+              />
+            )}
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             {card('Temperature', weather ? `${weather.temp} °C` : '--')}
