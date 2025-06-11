@@ -135,7 +135,7 @@ const WeatherChart = ({ dailyDataRaw, selected }: Props) => {
       x: {
         ticks: {
           autoSkip: false,
-          callback: (value, index) => {
+          callback: (_value, index) => {
             const label = labels[index];
             return label?.endsWith(':00') || label?.endsWith(':30') ? label : '';
           },
