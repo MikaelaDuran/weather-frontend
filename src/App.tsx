@@ -1,9 +1,8 @@
-
 import { useEffect, useState } from 'react';
 import './App.css';
 import Navbar from './components/Navbar';
 import WeatherChart from './components/WeatherChart';
-import { FaRegCalendarAlt } from 'react-icons/fa';
+import { IoCalendarOutline } from 'react-icons/io5'; // Ny ikon
 
 interface Weather {
   id: number;
@@ -69,30 +68,37 @@ function App() {
       <div className="min-h-screen bg-gradient-to-tr from-white via-white to-sky-100 text-black flex items-center justify-center px-4 py-6">
         <div className="w-full max-w-4xl bg-white/60 rounded-2xl shadow-2xl p-6 mt-12 relative">
 
-          <button onClick={() => changeDay(-1)} className="absolute left-32 top-15 text-3xl text-black">{'<'}</button>
-          <button onClick={() => changeDay(1)} className="absolute right-32 top-15  text-2xl text-black">{'>'}</button>
+          <button onClick={() => changeDay(-1)} className="absolute left-32 top-15 text-2xl text-gray-400">{'<'}</button>
+          <button onClick={() => changeDay(1)} className="absolute right-32 top-15 text-2xl text-gray-400">{'>'}</button>
 
-          <h2 className="text-3xl font-playfair text-slate-700 text-center mb-1">{weekday}</h2>
+          <h2 className="text-3xl font-playfair text-slate-700 text-center mb-1 mt-4">{weekday}</h2>
 
-          <div className="flex flex-col items-center mb-6">
-            <p className="text-center text-slate-600 text-lg">{monthDay}</p>
-            <button onClick={() => setShowDatePicker(!showDatePicker)} className="mt-2">
-              <FaRegCalendarAlt className="text-black text-lg" />
+        <div className="flex flex-col items-center mb-6 relative">
+          <p className="text-center text-slate-600 text-lg">{monthDay}</p>
+
+          <div className="relative mt-2">
+            <button onClick={() => setShowDatePicker(prev => !prev)}>
+              <IoCalendarOutline className="text-black text-xl" />
             </button>
+
             {showDatePicker && (
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => {
-                  setSelectedDate(e.target.value);
-                  setShowDatePicker(false);
-                }}
-                className="mt-2 border rounded px-2 py-1 text-sm"
-              />
+              <div className="absolute top-7 left-1/2 -translate-x-1/2 z-10">
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    setShowDatePicker(false);
+                  }}
+                  className="text-black text-sm border border-gray-300 rounded px-2 py-1 bg-white shadow"
+                />
+              </div>
             )}
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12 mb-6">
             {card('Temperature', weather ? `${weather.temp} °C` : '--')}
             {card('Humidity', weather ? `${weather.humidity} %` : '--')}
             {card('Pressure', weather ? `${weather.pressure} hPa` : '--')}

@@ -56,7 +56,7 @@ const WeatherChart = ({ dailyDataRaw, selected }: Props) => {
       const firstTime = new Date(`1970-01-01T${sortedEntries[0].roundedTime}:00`);
       const lastTime = new Date(`1970-01-01T${sortedEntries[sortedEntries.length - 1].roundedTime}:00`);
 
-      // ⬆️ Runda UPP till närmaste halvtimme efter första tidpunkten
+      // Runda UPP till närmaste halvtimme efter första tidpunkten
       const startTime = new Date(firstTime);
       const startMin = startTime.getMinutes();
       if (startMin > 30) {
@@ -65,7 +65,7 @@ const WeatherChart = ({ dailyDataRaw, selected }: Props) => {
         startTime.setMinutes(30, 0, 0);
       }
 
-      // ⬆️ Runda UPP till närmaste halvtimme efter sista tidpunkten
+      // Runda UPP till närmaste halvtimme efter sista tidpunkten
       const endTime = new Date(lastTime);
       const endMin = endTime.getMinutes();
       if (endMin > 30) {
@@ -135,7 +135,7 @@ const WeatherChart = ({ dailyDataRaw, selected }: Props) => {
       x: {
         ticks: {
           autoSkip: false,
-          callback: (value, index) => {
+          callback: (_value, index) => {
             const label = labels[index];
             return label?.endsWith(':00') || label?.endsWith(':30') ? label : '';
           },
