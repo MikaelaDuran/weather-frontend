@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import './App.css';
 import Navbar from './components/Navbar';
 import WeatherChart from './components/WeatherChart';
-import { IoCalendarOutline } from 'react-icons/io5'; // Ny ikon
+import { FaRegCalendarAlt } from 'react-icons/fa';
+import { IoClose } from 'react-icons/io5';
 
 interface Weather {
   id: number;
@@ -17,6 +18,7 @@ function App() {
   const [dailyDataRaw, setDailyDataRaw] = useState<Weather[]>([]);
   const [selected, setSelected] = useState<'temp' | 'humidity' | 'pressure'>('temp');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedTime, setSelectedTime] = useState<string>('12:00');
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const fetchWeather = () => {
@@ -29,12 +31,31 @@ function App() {
           );
 
           const filtered = sortedData.filter(entry => {
-            const entryDate = new Date(entry.timestamp ?? '').toISOString().split('T')[0];
-            return entryDate === selectedDate;
+            const entryDate = new Date(entry.timestamp ?? '').toLocaleDateString('sv-SE');
+            const selectedLocalDate = new Date(selectedDate).toLocaleDateString('sv-SE');
+            return entryDate === selectedLocalDate;
           });
 
           setDailyDataRaw(filtered);
-          setWeather(filtered[filtered.length - 1] ?? null);
+
+          if (filtered.length > 0) {
+            const targetDateTime = new Date(`${selectedDate}T${selectedTime}`);
+            let closest = filtered[0];
+            let minDiff = Math.abs(new Date(closest.timestamp!).getTime() - targetDateTime.getTime());
+
+            for (const entry of filtered) {
+              const entryTime = new Date(entry.timestamp!);
+              const diff = Math.abs(entryTime.getTime() - targetDateTime.getTime());
+              if (diff < minDiff) {
+                closest = entry;
+                minDiff = diff;
+              }
+            }
+
+            setWeather(closest);
+          } else {
+            setWeather(null);
+          }
         }
       })
       .catch((err) => console.error('Failed to fetch weather data:', err));
@@ -44,7 +65,7 @@ function App() {
     fetchWeather();
     const interval = setInterval(fetchWeather, 60000);
     return () => clearInterval(interval);
-  }, [selectedDate]);
+  }, [selectedDate, selectedTime]);
 
   const changeDay = (offset: number) => {
     const current = new Date(selectedDate);
@@ -60,7 +81,11 @@ function App() {
   );
 
   const weekday = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' });
-  const monthDay = new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const monthDay = new Date(selectedDate).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
 
   return (
     <>
@@ -68,47 +93,78 @@ function App() {
       <div className="min-h-screen bg-gradient-to-tr from-white via-white to-sky-100 text-black flex items-center justify-center px-4 py-6">
         <div className="w-full max-w-4xl bg-white/60 rounded-2xl shadow-2xl p-6 mt-12 relative">
 
-          <button onClick={() => changeDay(-1)} className="absolute left-32 top-15 text-2xl text-gray-400">{'<'}</button>
-          <button onClick={() => changeDay(1)} className="absolute right-32 top-15 text-2xl text-gray-400">{'>'}</button>
+          {/* Pildatum */}
+          <button onClick={() => changeDay(-1)} className="absolute left-32 top-15 text-3xl text-gray-400 hover:text-black">{'<'}</button>
+          <button onClick={() => changeDay(1)} className="absolute right-32 top-15 text-2xl text-gray-400 hover:text-black">{'>'}</button>
 
-          <h2 className="text-3xl font-playfair text-slate-700 text-center mb-1 mt-4">{weekday}</h2>
+          {/* Dag och datum */}
+          <h2 className="text-3xl font-playfair text-slate-700 text-center mb-1">{weekday}</h2>
+          <p className="text-center text-slate-600 text-lg mb-4">{monthDay}</p>
 
-        <div className="flex flex-col items-center mb-6 relative">
-          <p className="text-center text-slate-600 text-lg">{monthDay}</p>
-
-          <div className="relative mt-2">
-            <button onClick={() => setShowDatePicker(prev => !prev)}>
-              <IoCalendarOutline className="text-black text-xl" />
-            </button>
-
-            {showDatePicker && (
-              <div className="absolute top-7 left-1/2 -translate-x-1/2 z-10">
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => {
-                    setSelectedDate(e.target.value);
-                    setShowDatePicker(false);
-                  }}
-                  className="text-black text-sm border border-gray-300 rounded px-2 py-1 bg-white shadow"
-                />
+          {/* Kalender / ikon – fast höjd */}
+          <div className="min-h-[70px] flex items-center justify-center mb-6 mt">
+            {showDatePicker ? (
+              <div className="bg-white shadow rounded px-3 py-2 relative flex gap-4 items-center">
+                <button
+                  onClick={() => setShowDatePicker(false)}
+                  className="absolute top-1 right-1 text-gray-500 hover:text-black"
+                >
+                  <IoClose size={18} />
+                </button>
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 mb-1">Datum</label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="border rounded px-2 py-1 text-sm"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 mb-1">Tid</label>
+                  <input
+                    type="time"
+                    value={selectedTime}
+                    onChange={(e) => setSelectedTime(e.target.value)}
+                    className="border rounded px-2 py-1 text-sm"
+                  />
+                </div>
               </div>
+            ) : (
+              <button onClick={() => setShowDatePicker(true)}>
+                <FaRegCalendarAlt className="text-black text-xl" />
+              </button>
             )}
           </div>
-        </div>
 
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12 mb-6">
+          {/* Väderkort */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             {card('Temperature', weather ? `${weather.temp} °C` : '--')}
             {card('Humidity', weather ? `${weather.humidity} %` : '--')}
             {card('Pressure', weather ? `${weather.pressure} hPa` : '--')}
           </div>
 
+          {/* Graf */}
           <div className="bg-white rounded-xl shadow p-6">
             <div className="flex justify-center gap-4 mb-4">
-              <button onClick={() => setSelected('temp')} className={`px-4 py-1 rounded-full border ${selected === 'temp' ? 'bg-gray-200 text-gray-400 border-gray-200' : 'border-gray-300 text-gray-400'}`}>Temperature</button>
-              <button onClick={() => setSelected('humidity')} className={`px-4 py-1 rounded-full border ${selected === 'humidity' ? 'bg-gray-200 text-gray-400 border-gray-200' : 'border-gray-300 text-gray-400'}`}>Humidity</button>
-              <button onClick={() => setSelected('pressure')} className={`px-4 py-1 rounded-full border ${selected === 'pressure' ? 'bg-gray-200 text-gray-400 border-gray-200' : 'border-gray-300 text-gray-400'}`}>Pressure</button>
+              <button
+                onClick={() => setSelected('temp')}
+                className={`px-4 py-1 rounded-full border ${selected === 'temp' ? 'bg-gray-200 text-gray-400 border-gray-200' : 'border-gray-300 text-gray-400'}`}
+              >
+                Temperature
+              </button>
+              <button
+                onClick={() => setSelected('humidity')}
+                className={`px-4 py-1 rounded-full border ${selected === 'humidity' ? 'bg-gray-200 text-gray-400 border-gray-200' : 'border-gray-300 text-gray-400'}`}
+              >
+                Humidity
+              </button>
+              <button
+                onClick={() => setSelected('pressure')}
+                className={`px-4 py-1 rounded-full border ${selected === 'pressure' ? 'bg-gray-200 text-gray-400 border-gray-200' : 'border-gray-300 text-gray-400'}`}
+              >
+                Pressure
+              </button>
             </div>
             <WeatherChart dailyDataRaw={dailyDataRaw} selected={selected} />
           </div>
