@@ -18,7 +18,13 @@ function App() {
   const [dailyDataRaw, setDailyDataRaw] = useState<Weather[]>([]);
   const [selected, setSelected] = useState<'temp' | 'humidity' | 'pressure'>('temp');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [selectedTime, setSelectedTime] = useState<string>('12:00');
+
+  // 🕒 Starta med nuvarande tid (HH:mm)
+  const [selectedTime, setSelectedTime] = useState<string>(() => {
+    const now = new Date();
+    return now.toTimeString().slice(0, 5);
+  });
+
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const fetchWeather = () => {
@@ -63,7 +69,7 @@ function App() {
 
   useEffect(() => {
     fetchWeather();
-    const interval = setInterval(fetchWeather, 60000);
+    const interval = setInterval(fetchWeather, 60000); // uppdatera varje minut
     return () => clearInterval(interval);
   }, [selectedDate, selectedTime]);
 
@@ -99,9 +105,10 @@ function App() {
 
           {/* Dag och datum */}
           <h2 className="text-3xl font-playfair text-slate-700 text-center mb-1">{weekday}</h2>
-          <p className="text-center text-slate-600 text-lg mb-4">{monthDay}</p>
+          <p className="text-center text-slate-600 text-lg mb-1">{monthDay}</p>
+          <p className="text-center text-sm text-gray-500 mb-4"></p>
 
-          {/* Kalender / ikon – fast höjd */}
+          {/* Kalender / Tidväljare */}
           <div className="min-h-[70px] flex items-center justify-center mb-6 mt">
             {showDatePicker ? (
               <div className="bg-white shadow rounded px-3 py-2 relative flex gap-4 items-center">
