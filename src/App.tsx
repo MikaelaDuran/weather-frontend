@@ -19,13 +19,31 @@ function App() {
   const [selected, setSelected] = useState<'temp' | 'humidity' | 'pressure'>('temp');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
-  // 🕒 Starta med nuvarande tid (HH:mm)
-  const [selectedTime, setSelectedTime] = useState<string>(() => {
-    const now = new Date();
-    return now.toTimeString().slice(0, 5);
-  });
+  const [selectedTime, setSelectedTime] = useState<string>(''); // tom från början
+  const [autoTimeMode, setAutoTimeMode] = useState<boolean>(true); // använder "nu" som standard
 
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const updateWeather = (data: Weather[], time: string) => {
+    if (data.length > 0) {
+      const targetDateTime = new Date(`${selectedDate}T${time}`);
+      let closest = data[0];
+      let minDiff = Math.abs(new Date(closest.timestamp!).getTime() - targetDateTime.getTime());
+
+      for (const entry of data) {
+        const entryTime = new Date(entry.timestamp!);
+        const diff = Math.abs(entryTime.getTime() - targetDateTime.getTime());
+        if (diff < minDiff) {
+          closest = entry;
+          minDiff = diff;
+        }
+      }
+
+      setWeather(closest);
+    } else {
+      setWeather(null);
+    }
+  };
 
   const fetchWeather = () => {
     fetch('http://localhost:8080/weather/all')
@@ -44,24 +62,11 @@ function App() {
 
           setDailyDataRaw(filtered);
 
-          if (filtered.length > 0) {
-            const targetDateTime = new Date(`${selectedDate}T${selectedTime}`);
-            let closest = filtered[0];
-            let minDiff = Math.abs(new Date(closest.timestamp!).getTime() - targetDateTime.getTime());
+          const timeToUse = autoTimeMode
+            ? new Date().toTimeString().slice(0, 5)
+            : selectedTime;
 
-            for (const entry of filtered) {
-              const entryTime = new Date(entry.timestamp!);
-              const diff = Math.abs(entryTime.getTime() - targetDateTime.getTime());
-              if (diff < minDiff) {
-                closest = entry;
-                minDiff = diff;
-              }
-            }
-
-            setWeather(closest);
-          } else {
-            setWeather(null);
-          }
+          updateWeather(filtered, timeToUse);
         }
       })
       .catch((err) => console.error('Failed to fetch weather data:', err));
@@ -69,14 +74,15 @@ function App() {
 
   useEffect(() => {
     fetchWeather();
-    const interval = setInterval(fetchWeather, 60000); // uppdatera varje minut
+    const interval = setInterval(fetchWeather, 60000);
     return () => clearInterval(interval);
-  }, [selectedDate, selectedTime]);
+  }, [selectedDate, selectedTime, autoTimeMode]);
 
   const changeDay = (offset: number) => {
     const current = new Date(selectedDate);
     current.setDate(current.getDate() + offset);
     setSelectedDate(current.toISOString().split('T')[0]);
+    setAutoTimeMode(true); // återgå till auto-läge vid dagbyte
   };
 
   const card = (title: string, value: string) => (
@@ -132,7 +138,10 @@ function App() {
                   <input
                     type="time"
                     value={selectedTime}
-                    onChange={(e) => setSelectedTime(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedTime(e.target.value);
+                      setAutoTimeMode(false);
+                    }}
                     className="border rounded px-2 py-1 text-sm"
                   />
                 </div>

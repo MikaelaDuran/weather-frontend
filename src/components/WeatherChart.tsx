@@ -94,24 +94,25 @@ const WeatherChart = ({ dailyDataRaw, selected }: Props) => {
     let stepSize = 5;
 
     if (values.length > 0) {
-      const min = Math.min(...values);
-      const max = Math.max(...values);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
 
-      if (selected === 'temp') {
-        const center = Math.round((min + max) / 2);
-        yMin = Math.floor((center - 10) / 2) * 2;
-        yMax = Math.ceil((center + 10) / 2) * 2;
-        stepSize = 2;
-      } else if (selected === 'humidity') {
-        yMin = Math.max(0, Math.floor((min - 10) / 5) * 5);
-        yMax = Math.min(100, Math.ceil((max + 10) / 5) * 5);
-        stepSize = 5;
-      } else if (selected === 'pressure') {
-        yMin = Math.floor((min - 100) / 10) * 10;
-        yMax = Math.ceil((max + 100) / 10) * 10;
-        stepSize = 20;
-      }
-    }
+  if (selected === 'temp') {
+    const center = Math.round((min + max) / 2);
+    yMin = Math.floor((center - 4) / 1) * 1;   // ±4 grader
+    yMax = Math.ceil((center + 4) / 1) * 1;
+    stepSize = 1;                             // Stegstorlek 1 grad
+  } else if (selected === 'humidity') {
+    yMin = Math.max(0, Math.floor((min - 5) / 5) * 5);    // ±5 
+    yMax = Math.min(100, Math.ceil((max + 5) / 5) * 5);
+    stepSize = 5;
+  } else if (selected === 'pressure') {
+    yMin = Math.floor((min - 10) / 10) * 10;  // ±10 hPa
+    yMax = Math.ceil((max + 10) / 10) * 10;
+    stepSize = 10;                            // Stegstorlek 10 hPa
+  }
+}
+
 
     return { filledData, labels: allTimes, yMin, yMax, stepSize };
   }, [dailyDataRaw, selected]);
