@@ -46,7 +46,10 @@ function App() {
   };
 
   const fetchWeather = () => {
-    fetch('http://localhost:8080/weather/all')
+    const apiUrl = import.meta.env.VITE_APP_API_URL;
+    console.log("Fetching weather from:", `${apiUrl}/weather/all`); 
+
+    fetch(`${apiUrl}/weather/all`)
       .then((res) => res.json())
       .then((data: Weather[]) => {
         if (data.length > 0) {
