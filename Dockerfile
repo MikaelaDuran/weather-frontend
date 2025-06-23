@@ -8,19 +8,18 @@ RUN npm install
 # === Development Stage ===
 # Uses the Vite dev server for hot-reloading.
 FROM base AS development
-# Copy the rest of the source code
+# Hardcode the development API URL
 ENV VITE_APP_API_URL=http://localhost:8080
 COPY . .
-# The --host flag is crucial to expose the server
-CMD ["npm", "run", "dev", "--", "--host"]
+# This command runs the 'dev' script from package.json
+CMD ["npm", "run", "dev"]
 
 # === Builder Stage ===
 # Builds the static files for production.
 FROM base AS builder
-# Set the environment variable from the build argument
+# Hardcode the production API URL
 ENV VITE_APP_API_URL=http://localhost:8081
 COPY . .
-
 RUN npm run build
 
 # === Production Stage ===
