@@ -8,6 +8,11 @@ export default defineConfig({
     tailwindcss()
   ],
   server: {
-    port: 3000, // <-- Sätt vilken port din frontend ska köra på
+    watch: {
+      usePolling: true,
+    },
+    host: true,
+    strictPort: true,
+    port: 3000,
   },
 })
